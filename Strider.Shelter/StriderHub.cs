@@ -24,8 +24,30 @@ namespace Strider.Shelter
             _hubContext = hubContext;
         }
 
+        public Task ClientDisconnected(ClientDisconnected clientDisconnected)
+        {
+            _logger.LogInformation($"Client {clientDisconnected.Id} disconnected");
+            var removed = _downstreams.Remove(clientDisconnected.Id);
+            if (!removed)
+            {
+                _logger.LogCritical($"Could not delete client {clientDisconnected.Id}");
+            }
+
+            return Task.CompletedTask;
+        }
+
         public async Task Tick(Tick tick)
         {
+            if (!tick.Payload.Any())
+            {
+                return;
+            }
+
+            if (tick.Register)
+            {
+                _logger.LogInformation($"Registering {tick.Source}");
+                await Groups.AddToGroupAsync(Context.ConnectionId, tick.Source);
+            }
             var source = tick.Source;
             if (!_downstreams.TryGetValue(source, out var socket))
             {
@@ -41,11 +63,18 @@ namespace Strider.Shelter
                     while (true)
                     {
                         var n = await socket.GetStream().ReadAsync(buffer);
+                        if (n == 0)
+                        {
+                            break;
+                        }
+
                         try
                         {
-                            await _hubContext.Clients.All.SendAsync("UpTick", new Tick
+                            var destination = ((IPEndPoint) socket.Client.RemoteEndPoint)?.Address.ToString() +
+                                              ((IPEndPoint) socket.Client.RemoteEndPoint)?.Port;
+                            await _hubContext.Clients.Group(source).SendAsync("UpTick", new Tick
                             {
-                                Destination = ((IPEndPoint) socket.Client.RemoteEndPoint)?.Address.ToString(),
+                                Destination = source,
                                 Source = "Shelter",
                                 Payload = buffer.Take(n)
                             });
@@ -66,6 +95,7 @@ namespace Strider.Shelter
 
             var stream = socket.GetStream();
             try
+
             {
                 await stream.WriteAsync(tick.Payload.ToArray());
             }

@@ -14,32 +14,51 @@ namespace Strider.Tunnel
         {
             var upstream = new TcpListener(IPAddress.Loopback, 7777);
             upstream.Start();
-            var downstream = new HubConnectionBuilder()
-                .WithUrl("https://localhost:5001/strider")
-                .Build();
-            
-            await downstream.StartAsync();
-            
+
+
             while (true)
             {
                 var client = await upstream.AcceptTcpClientAsync();
+                Console.WriteLine(
+                    $"New client connected {((IPEndPoint) client.Client.RemoteEndPoint)?.Address.ToString() + ((IPEndPoint) client.Client.RemoteEndPoint)?.Port}");
                 _ = Task.Run(async () =>
                 {
-                    downstream.On<Tick>("UpTick", async tick =>
-                    {
-                        await client.GetStream().WriteAsync(tick.Payload.ToArray());
-                    });
+                    var msgCount = 0;
+                    var downstream = new HubConnectionBuilder()
+                        .WithUrl("https://localhost:5001/strider")
+                        .Build();
+
+                    await downstream.StartAsync();
+                    downstream.On<Tick>("UpTick",
+                        async tick => { await client.GetStream().WriteAsync(tick.Payload.ToArray()); });
                     var stream = client.GetStream();
+                    var buffer = new byte[4096];
                     while (true)
                     {
-                        var buffer = new byte[4096];
+                        if (!client.Connected)
+                        {
+                            Console.WriteLine(client.Connected);
+                            await downstream.SendAsync("ClientDisconnected",
+                                new ClientDisconnected
+                                {
+                                    Id = ((IPEndPoint) client.Client.RemoteEndPoint)?.Address.ToString() +
+                                         ((IPEndPoint) client.Client.RemoteEndPoint)?.Port
+                                });
+                            break;
+                        }
+
+
                         var n = stream.Read(buffer);
                         var tick = new Tick
                         {
                             Destination = "Tunnel",
-                            Source = ((IPEndPoint) client.Client.RemoteEndPoint)?.Address.ToString(),
-                            Payload = buffer.Take(n)
+                            Source = ((IPEndPoint) client.Client.RemoteEndPoint)?.Address.ToString() +
+                                     ((IPEndPoint) client.Client.RemoteEndPoint)?.Port,
+                            Payload = buffer.Take(n),
+                            Register = msgCount == 0
                         };
+                        Console.WriteLine(msgCount == 0);
+                        msgCount++;
                         await downstream.SendAsync("Tick", tick);
                     }
                 });
