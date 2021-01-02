@@ -36,76 +36,89 @@ namespace Strider.Shelter
             return Task.CompletedTask;
         }
 
+        public async Task UpTick(Tick tick)
+        {
+            if (!_downstreams.TryGetValue(tick.Destination, out var socket))
+            {
+                _logger.LogCritical($"could not find upstream for {tick.Destination}");
+                foreach (var keyValuePair in _downstreams)
+                {
+                    Console.WriteLine(keyValuePair.Key);
+                }
+                return;
+            }
+
+            await socket.GetStream().WriteAsync(tick.Payload.ToArray());
+        }
         public async Task Tick(Tick tick)
         {
-            if (!tick.Payload.Any())
-            {
-                return;
-            }
-
-            if (tick.Register)
-            {
-                _logger.LogInformation($"Registering {tick.Source}");
-                await Groups.AddToGroupAsync(Context.ConnectionId, tick.Source);
-            }
-            var source = tick.Source;
-            if (!_downstreams.TryGetValue(source, out var socket))
-            {
-                _logger.LogCritical($"Downstream not found for {source}, creating one");
-                var downstream = new TcpClient();
-                await downstream.ConnectAsync(IPAddress.Loopback, 25565);
-                _downstreams[source] = downstream;
-                socket = downstream;
-
-                _ = Task.Run(async () =>
-                {
-                    var buffer = new byte[4096];
-                    while (true)
-                    {
-                        var n = await socket.GetStream().ReadAsync(buffer);
-                        if (n == 0)
-                        {
-                            break;
-                        }
-
-                        try
-                        {
-                            var destination = ((IPEndPoint) socket.Client.RemoteEndPoint)?.Address.ToString() +
-                                              ((IPEndPoint) socket.Client.RemoteEndPoint)?.Port;
-                            await _hubContext.Clients.Group(source).SendAsync("UpTick", new Tick
-                            {
-                                Destination = source,
-                                Source = "Shelter",
-                                Payload = buffer.Take(n)
-                            });
-                        }
-                        catch (Exception e)
-                        {
-                            _logger.LogCritical(e.Message);
-                        }
-                    }
-                });
-            }
-
-            if (!socket.Connected)
-            {
-                _logger.LogCritical($"Downstream connection is dead for {source}");
-                return;
-            }
-
-            var stream = socket.GetStream();
-            try
-
-            {
-                await stream.WriteAsync(tick.Payload.ToArray());
-            }
-            catch (Exception e)
-            {
-                _logger.LogCritical(e.Message);
-                return;
-            }
-
-            _logger.LogInformation($"Wrote {tick.Payload.Count()} bytes to downstream");
+            // if (!tick.Payload.Any())
+            // {
+            //     return;
+            // }
+            //
+            // if (tick.Register)
+            // {
+            //     _logger.LogInformation($"Registering {tick.Source}");
+            //     _downstreams[
+            //     ]
+            // }
+            // // var source = tick.Source;
+            // if (!_downstreams.TryGetValue(source, out var socket))
+            // {
+            //     _logger.LogCritical($"Downstream not found for {source}, creating one");
+            //     var downstream = new TcpClient();
+            //     await downstream.ConnectAsync(IPAddress.Loopback, 25565);
+            //     _downstreams[source] = downstream;
+            //     socket = downstream;
+            //
+            //     _ = Task.Run(async () =>
+            //     {
+            //         var buffer = new byte[4096];
+            //         while (true)
+            //         {
+            //             var n = await socket.GetStream().ReadAsync(buffer);
+            //             if (n == 0)
+            //             {
+            //                 break;
+            //             }
+            //
+            //             try
+            //             {
+            //                 await _hubContext.Clients.Group(source).SendAsync("UpTick", new Tick
+            //                 {
+            //                     Destination = source,
+            //                     Source = "Shelter",
+            //                     Payload = buffer.Take(n)
+            //                 });
+            //             }
+            //             catch (Exception e)
+            //             {
+            //                 _logger.LogCritical(e.Message);
+            //             }
+            //         }
+            //     });
+            // }
+            //
+            // if (!socket.Connected)
+            // {
+            //     _logger.LogCritical($"Downstream connection is dead for {source}");
+            //     return;
+            // }
+            //
+            // var stream = socket.GetStream();
+            // try
+            //
+            // {
+            //     await stream.WriteAsync(tick.Payload.ToArray());
+            // }
+            // catch (Exception e)
+            // {
+            //     _logger.LogCritical(e.Message);
+            //     return;
+            // }
+            //
+            // _logger.LogInformation($"Wrote {tick.Payload.Count()} bytes to downstream");
         }
     }
 }

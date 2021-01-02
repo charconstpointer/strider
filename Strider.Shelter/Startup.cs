@@ -16,6 +16,7 @@ namespace Strider.Shelter
         {
             services.AddSignalR();
             services.AddSingleton<IDictionary<string, TcpClient>>(_ => new Dictionary<string, TcpClient>());
+            services.AddHostedService<ShelterService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

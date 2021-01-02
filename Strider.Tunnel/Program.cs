@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -12,57 +13,61 @@ namespace Strider.Tunnel
     {
         static async Task Main(string[] args)
         {
-            var upstream = new TcpListener(IPAddress.Loopback, 7777);
-            upstream.Start();
-
-
-            while (true)
+            var downstreams = new Dictionary<string, TcpClient>();
+            var upstream = new HubConnectionBuilder()
+                // .WithUrl("http/ec2-35-178-211-187.eu-west-2.compute.amazonaws.com:5001/strider")
+                .WithUrl("https://localhost:5001/strider")
+                .Build();
+            upstream.On<Tick>("Tick", async tick =>
             {
-                var client = await upstream.AcceptTcpClientAsync();
-                Console.WriteLine(
-                    $"New client connected {((IPEndPoint) client.Client.RemoteEndPoint)?.Address.ToString() + ((IPEndPoint) client.Client.RemoteEndPoint)?.Port}");
-                _ = Task.Run(async () =>
+                Console.WriteLine("Tick");
+                TcpClient downstream;
+                if (tick.Register)
                 {
-                    var msgCount = 0;
-                    var downstream = new HubConnectionBuilder()
-                        .WithUrl("https://localhost:5001/strider")
-                        .Build();
-
-                    await downstream.StartAsync();
-                    downstream.On<Tick>("UpTick",
-                        async tick => { await client.GetStream().WriteAsync(tick.Payload.ToArray()); });
-                    var stream = client.GetStream();
-                    var buffer = new byte[4096];
-                    while (true)
+                    Console.WriteLine("Register");
+                    downstream = new TcpClient();
+                    await downstream.ConnectAsync(IPAddress.Loopback, 25565);
+                    downstreams[tick.Source] = downstream;
+                    _ = Task.Run(async () =>
                     {
-                        if (!client.Connected)
+                        var stream = downstream.GetStream();
+                        var buffer = new byte[4096];
+                        while (true)
                         {
-                            Console.WriteLine(client.Connected);
-                            await downstream.SendAsync("ClientDisconnected",
-                                new ClientDisconnected
-                                {
-                                    Id = ((IPEndPoint) client.Client.RemoteEndPoint)?.Address.ToString() +
-                                         ((IPEndPoint) client.Client.RemoteEndPoint)?.Port
-                                });
-                            break;
+                            if (!downstream.Connected)
+                            {
+                                Console.WriteLine(downstream.Connected);
+                                await upstream.SendAsync("ClientDisconnected",
+                                    new ClientDisconnected
+                                    {
+                                        Id = tick.Source
+                                    });
+                                break;
+                            }
+
+                            Console.WriteLine("Reading");
+                            var n = stream.Read(buffer);
+                            var tickk = new Tick
+                            {
+                                Destination = tick.Source,
+                                Source = "Tunnel",
+                                Payload = buffer.Take(n),
+                            };
+                            await upstream.SendAsync("UpTick", tickk);
                         }
+                    });
+                }
+                else
+                {
+                    downstreams.TryGetValue(tick.Source, out downstream);
+                }
 
+                await downstream!.GetStream().WriteAsync(tick.Payload.ToArray());
+            });
+            await upstream.StartAsync();
+            Console.WriteLine(upstream.State);
 
-                        var n = stream.Read(buffer);
-                        var tick = new Tick
-                        {
-                            Destination = "Tunnel",
-                            Source = ((IPEndPoint) client.Client.RemoteEndPoint)?.Address.ToString() +
-                                     ((IPEndPoint) client.Client.RemoteEndPoint)?.Port,
-                            Payload = buffer.Take(n),
-                            Register = msgCount == 0
-                        };
-                        Console.WriteLine(msgCount == 0);
-                        msgCount++;
-                        await downstream.SendAsync("Tick", tick);
-                    }
-                });
-            }
+            Console.ReadKey();
         }
     }
 }
