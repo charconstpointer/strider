@@ -15,8 +15,8 @@ namespace Strider.Tunnel
         {
             var downstreams = new Dictionary<string, TcpClient>();
             var upstream = new HubConnectionBuilder()
-                // .WithUrl("http/ec2-35-178-211-187.eu-west-2.compute.amazonaws.com:5001/strider")
-                .WithUrl("http://localhost:4000/strider")
+                .WithUrl("http://ec2-35-178-211-187.eu-west-2.compute.amazonaws.com:4000/strider")
+                // .WithUrl("http://localhost:4000/strider")
                 .Build();
             upstream.On<Tick>("Tick", async tick =>
             {
@@ -47,6 +47,7 @@ namespace Strider.Tunnel
 
                             Console.WriteLine("Reading");
                             var n = stream.Read(buffer);
+                            if (n <= 0) continue;
                             var tickk = new Tick
                             {
                                 Destination = tick.Source,
@@ -54,6 +55,7 @@ namespace Strider.Tunnel
                                 Payload = buffer.Take(n),
                             };
                             await upstream.SendAsync("UpTick", tickk);
+
                         }
                     });
                 }
