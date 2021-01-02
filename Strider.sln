@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Strider.Tunnel", "Strider.Tunnel\Strider.Tunnel.csproj", "{F5DE2F6A-7BD2-48A8-A7D6-02F53B2777D3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Strider.Messaging", "Strider.Messaging\Strider.Messaging.csproj", "{AED97BB8-BE9A-427B-82F2-3BD27FD9AF04}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Strider.Shelter", "Strider.Shelter\Strider.Shelter.csproj", "{4992439E-88E2-4E48-957C-88BC4F0D26DB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F5DE2F6A-7BD2-48A8-A7D6-02F53B2777D3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5DE2F6A-7BD2-48A8-A7D6-02F53B2777D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5DE2F6A-7BD2-48A8-A7D6-02F53B2777D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5DE2F6A-7BD2-48A8-A7D6-02F53B2777D3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AED97BB8-BE9A-427B-82F2-3BD27FD9AF04}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AED97BB8-BE9A-427B-82F2-3BD27FD9AF04}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AED97BB8-BE9A-427B-82F2-3BD27FD9AF04}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AED97BB8-BE9A-427B-82F2-3BD27FD9AF04}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4992439E-88E2-4E48-957C-88BC4F0D26DB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4992439E-88E2-4E48-957C-88BC4F0D26DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4992439E-88E2-4E48-957C-88BC4F0D26DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4992439E-88E2-4E48-957C-88BC4F0D26DB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
