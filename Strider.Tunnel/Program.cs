@@ -16,7 +16,7 @@ namespace Strider.Tunnel
             var downstreams = new Dictionary<string, TcpClient>();
             var upstream = new HubConnectionBuilder()
                 // .WithUrl("http/ec2-35-178-211-187.eu-west-2.compute.amazonaws.com:5001/strider")
-                .WithUrl("https://localhost:5001/strider")
+                .WithUrl("http://localhost:4000/strider")
                 .Build();
             upstream.On<Tick>("Tick", async tick =>
             {

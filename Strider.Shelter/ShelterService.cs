@@ -28,7 +28,7 @@ namespace Strider.Shelter
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            var listener = new TcpListener(IPAddress.Loopback, 8133);
+            var listener = new TcpListener(IPAddress.Any, 8133);
             listener.Start();
             while (!stoppingToken.IsCancellationRequested)
             {
