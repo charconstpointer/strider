@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using Microsoft.AspNetCore.Builder;
@@ -13,14 +14,8 @@ namespace Strider.Shelter
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddSingleton(x =>
-            {
-                var downstream = new TcpClient();
-                downstream.ConnectAsync(IPAddress.Loopback, 25565);
-                return downstream;
-            });
             services.AddSignalR();
-            services.AddHostedService<StriderService>();
+            services.AddSingleton<IDictionary<string, TcpClient>>(_ => new Dictionary<string, TcpClient>());
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -33,10 +28,7 @@ namespace Strider.Shelter
 
             app.UseRouting();
 
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapHub<StriderHub>("/strider");
-            });
+            app.UseEndpoints(endpoints => { endpoints.MapHub<StriderHub>("/strider"); });
         }
     }
 }

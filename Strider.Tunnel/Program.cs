@@ -22,9 +22,7 @@ namespace Strider.Tunnel
             
             while (true)
             {
-                Console.WriteLine("Wego");
                 var client = await upstream.AcceptTcpClientAsync();
-                Console.WriteLine("new client");
                 _ = Task.Run(async () =>
                 {
                     downstream.On<Tick>("UpTick", async tick =>
@@ -36,19 +34,15 @@ namespace Strider.Tunnel
                     {
                         var buffer = new byte[4096];
                         var n = stream.Read(buffer);
-                        Console.WriteLine(n);
                         var tick = new Tick
                         {
-                            Destination = "Dest",
-                            Source = "Source",
+                            Destination = "Tunnel",
+                            Source = ((IPEndPoint) client.Client.RemoteEndPoint)?.Address.ToString(),
                             Payload = buffer.Take(n)
                         };
                         await downstream.SendAsync("Tick", tick);
                     }
                 });
-                
-                
-
             }
         }
     }
