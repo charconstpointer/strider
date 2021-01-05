@@ -7,6 +7,5 @@ namespace Strider.Messaging
         public string Source { get; set; }
         public string Destination { get; set; }
         public IEnumerable<byte> Payload { get; set; }
-        public bool Register { get; set; }
     }
 }

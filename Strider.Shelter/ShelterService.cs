@@ -37,15 +37,15 @@ namespace Strider.Shelter
                              ((IPEndPoint) socket.Client.RemoteEndPoint)?.Port;
                 _upstreams[source] = socket;
                 _logger.LogInformation($"new client {source}");
+                await _hubContext.Clients.All.SendAsync("ClientJoined",new RegisterClient
+                {
+                    Upstream = source
+                }, stoppingToken);
                 _ = Task.Run(async () =>
                 {
                     var buffer = new byte[4096];
-                    var msgCount = 0;
-                    if (msgCount == 0)
-                    {
-                        _upstreams[source] = socket;
-                    }
-                    while (true)
+                    _upstreams[source] = socket;
+                    while (!stoppingToken.IsCancellationRequested)
                     {
                         var n = await socket.GetStream().ReadAsync(buffer, stoppingToken);
                         if (n == 0)
@@ -60,7 +60,6 @@ namespace Strider.Shelter
                                 Destination = "Tunnel",
                                 Source = source,
                                 Payload = buffer.Take(n),
-                                Register = msgCount++ == 0
                             }, stoppingToken);
                             _logger.LogInformation(n.ToString());
                         }
