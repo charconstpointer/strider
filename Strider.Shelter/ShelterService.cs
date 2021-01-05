@@ -36,39 +36,43 @@ namespace Strider.Shelter
                 var source = ((IPEndPoint) socket.Client.RemoteEndPoint)?.Address.ToString() +
                              ((IPEndPoint) socket.Client.RemoteEndPoint)?.Port;
                 _upstreams[source] = socket;
-                _logger.LogInformation($"new client {source}");
-                await _hubContext.Clients.All.SendAsync("ClientJoined",new RegisterClient
+                _logger.LogInformation($"New client {source} joined🦽!");
+                await _hubContext.Clients.All.SendAsync("ClientJoined", new RegisterClient
                 {
                     Upstream = source
                 }, stoppingToken);
-                _ = Task.Run(async () =>
-                {
-                    var buffer = new byte[4096];
-                    _upstreams[source] = socket;
-                    while (!stoppingToken.IsCancellationRequested)
-                    {
-                        var n = await socket.GetStream().ReadAsync(buffer, stoppingToken);
-                        if (n == 0)
-                        {
-                            break;
-                        }
+                _ = Task.Factory.StartNew(async _ => await HandleClient(socket, source, stoppingToken), stoppingToken,
+                    TaskCreationOptions.LongRunning);
+            }
+        }
 
-                        try
-                        {
-                            await _hubContext.Clients.All.SendAsync("Tick", new Tick
-                            {
-                                Destination = "Tunnel",
-                                Source = source,
-                                Payload = buffer.Take(n),
-                            }, stoppingToken);
-                            _logger.LogInformation(n.ToString());
-                        }
-                        catch (Exception e)
-                        {
-                            _logger.LogCritical(e.Message);
-                        }
-                    }
-                }, stoppingToken);
+        private async Task HandleClient(TcpClient socket, string source, CancellationToken stoppingToken)
+        {
+            var buffer = new byte[4096 * 32];
+            _upstreams[source] = socket;
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                var n = await socket.GetStream().ReadAsync(buffer, stoppingToken);
+                if (n == 0)
+                {
+                    //Client has disconnected
+                    break;
+                }
+
+                try
+                {
+                    await _hubContext.Clients.All.SendAsync("Tick", new Tick
+                    {
+                        Destination = "Tunnel",
+                        Source = source,
+                        Payload = buffer.Take(n),
+                    }, stoppingToken);
+                    _logger.LogInformation(n.ToString());
+                }
+                catch (Exception e)
+                {
+                    _logger.LogCritical(e.Message);
+                }
             }
         }
     }
